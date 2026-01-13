@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Community Board - Upload Support</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body { background: #f6f4f2; font-family: "Segoe UI", sans-serif; color: #333; }
+        .navbar { background: #ffffff; border-bottom: 1px solid #dee2e6; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .navbar-brand { font-weight: 700; color: #4b3832; }
+
+        /* Sidebar */
+        .sidebar h6 { font-weight: 700; color: #4b3832; text-transform: uppercase; margin-top: 10px; }
+        .category-list { list-style: none; padding: 0; }
+        .category-item {
+            padding: 10px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 8px;
+            font-size: 14px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+        }
+        .category-item:hover { background: #efebe9; }
+        .category-item.active { background: #8d6e63; color: white; }
+        .category-count { font-size: 11px; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 10px; }
+
+        /* Card Styling */
+        .notice-card {
+            border: none; border-radius: 16px; overflow: hidden;
+            transition: transform 0.3s ease; height: 100%; background: #fff;
+        }
+        .notice-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .notice-card img { height: 160px; object-fit: cover; width: 100%; }
+        
+        .like-btn { cursor: pointer; transition: 0.2s; font-size: 18px; color: #ccc; }
+        .like-btn.active { color: #e74c3c; transform: scale(1.2); }
+        .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; }
+        .delete-btn:hover { color: #dc3545; }
+
+        /* Right Panel */
+        .right-box { background: #fff; padding: 15px; border-radius: 14px; margin-bottom: 15px; border: 1px solid #eee; }
+        .small-text { font-size: 13px; color: #777; }
+
+        .search-container { position: relative; max-width: 400px; }
+        .search-container i { position: absolute; left: 12px; top: 10px; color: #aaa; }
+        .search-container input { padding-left: 35px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar sticky-top px-4 py-3">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><i class="fa-solid fa-clipboard-check me-2"></i>Notice Board</a>
+        <div class="search-container d-none d-md-block flex-grow-1 mx-5">
+            <i class="fa fa-search"></i>
+            <input type="text" id="searchInput" class="form-control" placeholder="Search notices..." onkeyup="handleSearch()">
+        </div>
+        <button class="btn btn-dark rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addNoticeModal">
+            <i class="fa-solid fa-plus me-1"></i> Add Notice
+        </button>
+    </div>
+</nav>
+
+<div class="container-fluid mt-4 px-lg-5">
+    <div class="row">
+        <div class="col-md-2 mb-4">
+            <h6>Categories</h6>
+            <ul class="category-list" id="categoryLinks">
+                <li class="category-item active" onclick="filterByCategory('all', this)">
+                    <span>All</span> <span class="category-count" id="count-all">0</span>
+                </li>
+                <li class="category-item" onclick="filterByCategory('Education', this)">
+                    <span>Education</span> <span class="category-count" id="count-Education">0</span>
+                </li>
+                <li class="category-item" onclick="filterByCategory('Health', this)">
+                    <span>Health</span> <span class="category-count" id="count-Health">0</span>
+                </li>
+                <li class="category-item" onclick="filterByCategory('Event', this)">
+                    <span>Event</span> <span class="category-count" id="count-Event">0</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-7">
+            <div class="row g-4" id="noticeBoard"></div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="right-box shadow-sm text-center py-4">
+                <h6 class="fw-bold mb-3">Community Pulse</h6>
+                <div class="display-6 fw-bold text-danger" id="totalLikes">0</div>
+                <p class="small-text mt-1">Total Likes Received</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addNoticeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Post Notice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Title</label>
+                    <input type="text" id="formTitle" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Category</label>
+                    <select id="formCategory" class="form-select">
+                        <option value="Education">Education</option>
+                        <option value="Health">Health</option>
+                        <option value="Event">Event</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Image (Upload File or Paste URL)</label>
+                    <input type="file" id="formFile" class="form-control mb-2" accept="image/*">
+                    <input type="text" id="formImgUrl" class="form-control" placeholder="Or paste image URL here...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Description</label>
+                    <textarea id="formText" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-dark w-100 rounded-pill" onclick="handleFormSubmit()">Post to Board</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let notices = [
+    { title: "React Workshop", category: "Education", text: "Learn to build modern web apps.", img: "https://images.unsplash.com/photo-1633356122544-f134324a6cee", liked: false },
+    { title: "Weekly Fitness", category: "Health", text: "Join our community workout sessions.", img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438", liked: false }
+];
+
+function renderBoard(data = notices) {
+    const board = document.getElementById("noticeBoard");
+    board.innerHTML = "";
+    data.forEach((notice) => {
+        const masterIndex = notices.indexOf(notice);
+        board.innerHTML += `
+        <div class="col-md-6">
+            <div class="card notice-card shadow-sm">
+                <img src="${notice.img || 'https://via.placeholder.com/400x200?text=No+Image'}" alt="Notice">
+                <div class="card-body">
+                    <span class="badge ${getBadgeClass(notice.category)} mb-2">${notice.category}</span>
+                    <h6 class="fw-bold">${notice.title}</h6>
+                    <p class="small text-muted mb-3">${notice.text}</p>
+                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                        <i class="fa-heart ${notice.liked ? 'fa-solid active text-danger' : 'fa-regular'} like-btn" onclick="toggleLike(${masterIndex})"></i>
+                        <button class="delete-btn" onclick="deleteNotice(${masterIndex})"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+    updateStats();
+}
+
+async function handleFormSubmit() {
+    const title = document.getElementById("formTitle").value;
+    const category = document.getElementById("formCategory").value;
+    const text = document.getElementById("formText").value;
+    const urlInput = document.getElementById("formImgUrl").value;
+    const fileInput = document.getElementById("formFile").files[0];
+
+    let finalImg = urlInput || "https://via.placeholder.com/400x200?text=Community+Notice";
+
+    // If a file is uploaded, convert it to a Base64 string
+    if (fileInput) {
+        finalImg = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(fileInput);
+        });
+    }
+
+    if (title && text) {
+        notices.unshift({ title, category, text, liked: false, img: finalImg });
+        bootstrap.Modal.getInstance(document.getElementById('addNoticeModal')).hide();
+        resetForm();
+        renderBoard();
+    }
+}
+
+function getBadgeClass(cat) {
+    if(cat === 'Education') return 'bg-primary';
+    if(cat === 'Health') return 'bg-success';
+    return 'bg-warning text-dark';
+}
+
+function toggleLike(idx) { notices[idx].liked = !notices[idx].liked; renderBoard(); }
+function deleteNotice(idx) { notices.splice(idx, 1); renderBoard(); }
+
+function handleSearch() {
+    const term = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = notices.filter(n => n.title.toLowerCase().includes(term) || n.text.toLowerCase().includes(term));
+    renderBoard(filtered);
+}
+
+function filterByCategory(type, el) {
+    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    renderBoard(type === 'all' ? notices : notices.filter(n => n.category === type));
+}
+
+function updateStats() {
+    document.getElementById("totalLikes").innerText = notices.filter(n => n.liked).length;
+    document.getElementById("count-all").innerText = notices.length;
+    ['Education', 'Health', 'Event'].forEach(cat => {
+        document.getElementById(`count-${cat}`).innerText = notices.filter(n => n.category === cat).length;
+    });
+}
+
+function resetForm() {
+    document.getElementById("formTitle").value = "";
+    document.getElementById("formText").value = "";
+    document.getElementById("formImgUrl").value = "";
+    document.getElementById("formFile").value = "";
+}
+
+renderBoard();
+</script>
+</body>
+</html>
